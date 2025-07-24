@@ -16,3 +16,5 @@ def chat_api(request):
         reply = f"Bạn vừa nói: '{message}'"
 
         return JsonResponse({"reply": reply})
+def home_view(request):
+    return render(request, 'core/home.html')
