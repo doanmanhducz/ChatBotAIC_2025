@@ -14,32 +14,32 @@ def chat_api(request):
     if request.method == "POST":
         data = json.loads(request.body)
         message = data.get("message")
-        session_id = data.get("session_id")  # ✅ lấy session_id từ client
+        session_id = data.get("session_id")
 
         if session_id:
             try:
                 chat_session = ChatSession.objects.get(id=session_id)
             except ChatSession.DoesNotExist:
-                # fallback: tạo mới nếu không tìm thấy
                 chat_session = ChatSession.objects.create(session_id=request.session.session_key)
         else:
-            # ✅ tạo mới nếu chưa có session
             chat_session = ChatSession.objects.create(session_id=request.session.session_key)
             request.session['current_chat_session_id'] = chat_session.id
 
-        # ✅ Đặt title 1 lần duy nhất
-        if not chat_session.title and not ChatMessage.objects.filter(chat_session=chat_session).exists():
-            chat_session.title = message[:60]
+        # ✅ Chỉ đặt title nếu chưa có title (lần đầu tiên)
+        if not chat_session.title:
+            chat_session.title = message[:60]  # dùng nguyên câu hỏi đầu tiên của user
             chat_session.save()
-
-        # Ghi tin nhắn
+        
+        # Ghi tin nhắn người dùng
         ChatMessage.objects.create(chat_session=chat_session, sender="user", message=message)
+
+        # Bot trả lời
         reply = f"Bạn vừa nói: '{message}'"
         ChatMessage.objects.create(chat_session=chat_session, sender="bot", message=reply)
 
         return JsonResponse({
             "reply": reply,
-            "session_id": chat_session.id  # Trả về để frontend dùng tiếp
+            "session_id": chat_session.id
         })
 def home_view(request):
     return render(request, 'core/home.html')
@@ -52,17 +52,14 @@ def chat_sessions_api(request):
 
     data = []
     for s in sessions:
-        latest_msg = s.messages.order_by('-timestamp').first()
-
-        # 🔴 Bỏ qua session chưa có tin nhắn
-        if not latest_msg:
+        if not s.messages.exists():
             continue
 
-        preview = latest_msg.message[:60] + "..." if latest_msg else "Chưa có tin nhắn"
         data.append({
             "id": s.id,
             "created_at": s.created_at.strftime("%Y-%m-%d %H:%M"),
-            "preview": preview
+            "title": s.title if s.title else "Chưa có tiêu đề",
+            "preview": s.title if s.title else "Chưa có tiêu đề"  # ✅ Giữ key preview để JS cũ vẫn dùng được
         })
 
     return JsonResponse({"sessions": data})

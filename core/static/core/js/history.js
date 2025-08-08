@@ -8,7 +8,7 @@ async function loadChatSessions() {
 
     data.sessions.forEach(session => {
         const li = document.createElement("li");
-        li.textContent = `${session.created_at}: ${session.preview}`;
+        li.textContent = `${session.created_at}: ${ session.title || session.preview}`;
         li.classList.add("history-item", "py-2", "border-bottom", "history-hover");
         li.dataset.sessionId = session.id;
 
