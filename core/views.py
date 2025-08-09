@@ -4,6 +4,31 @@ from django.http import JsonResponse
 import json
 from .models import ChatSession, ChatMessage
 from django.views.decorators.http import require_GET
+import os
+import requests
+# import torch
+# from transformers import AutoModelForCausalLM, AutoTokenizer
+
+API_URL = "https://router.huggingface.co/v1/chat/completions"
+headers = {
+    "Authorization": f"Bearer {os.environ['HF_TOKEN']}",
+}
+
+def query(payload):
+    response = requests.post(API_URL, headers=headers, json=payload)
+    return response.json()
+
+def generate_reply(input):
+
+    prompt = [
+        {"role": "system", "content": "Bạn là ChatGPT-5."},
+        {"role": "user", "content": input}
+    ]    
+    response = query({
+    "messages": prompt,
+    "model": "Qwen/Qwen2.5-7B-Instruct:together"
+})
+    return response["choices"][0]["message"]["content"]
 
 
 def chat_view(request):
@@ -34,7 +59,8 @@ def chat_api(request):
         ChatMessage.objects.create(chat_session=chat_session, sender="user", message=message)
 
         # Bot trả lời
-        reply = f"Bạn vừa nói: '{message}'"
+        # reply = f"Bạn vừa nói: '{message}'"
+        reply = generate_reply(message)
         ChatMessage.objects.create(chat_session=chat_session, sender="bot", message=reply)
 
         return JsonResponse({

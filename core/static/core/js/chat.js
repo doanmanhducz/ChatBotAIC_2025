@@ -21,8 +21,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 session_id: currentSessionId
             })
         });
-
+        
         const data = await response.json();
+
         appendMessage("Bot", data.reply, "bot");
 
         if (!currentSessionId && data.session_id) {
